@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ProfilRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: ProfilRepository::class)]
 class Profil
@@ -15,9 +16,11 @@ class Profil
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(["profil:read"])]
     private ?string $imageProfil = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(["profil:read"])]
     private ?string $bio = null;
 
     #[ORM\ManyToOne(inversedBy: 'profils')]
