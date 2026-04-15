@@ -5,20 +5,20 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Profil;
 use App\Repository\UserRepository;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
+
 final class AuthController extends AbstractController
 {
 
     public function __construct(private UserRepository $userRepo){}
 
-    public function getSalt(): string{
-        return md5($this->getParameter('app.password_salt').uniqid());
+    private function getSalt(): string{
+        return md5($this->getParameter('app.password_salt'));
     }
 
 
@@ -60,6 +60,7 @@ final class AuthController extends AbstractController
             ]);
         }
 
+
         if($this->userRepo->findOneBy(['email' => $data['email']])){
             return $this->json(["status"=> "error", "message"=>"Email déjà utilisé"]);
         }
@@ -70,6 +71,7 @@ final class AuthController extends AbstractController
         $user = new User();
         $profil = new Profil();
         $salt = $this->getSalt();
+
 
         $user->setPseudo($data['pseudo']);
         $user->setEmail($data['email']);
@@ -100,5 +102,26 @@ final class AuthController extends AbstractController
            "message" => "compte crée",
             "result" => $user, 200, [], ['groups'=>['user:read']]
         ]);
+    }
+
+    #[Route('/auth/token', name: 'auth_token_login', methods: ['GET', 'OPTIONS'])]
+    public function logout(Request $request): Response{
+
+        $token = $request->headers->get('Authorization');
+
+        if(!$token){
+            return $this->json(["status"=> "error", "message"=> "token vide"]);
+        }
+
+
+        $token = substr($token, 7);
+        $user = $this->userRepo->findOneBy(['token' => $token]);
+
+
+        if(!$user){
+            return $this->json(["status"=> "error", "message"=> "token vide"]);
+        }
+
+        return $this->json(["status"=> "ok", "message"=>"Token valid", "result" => $user], 200, [], ['groups'=>['user:read']]);
     }
 }
