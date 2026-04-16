@@ -22,11 +22,6 @@ final class ProfilController extends AbstractController
     {
     }
 
-    private function getSalt(): string
-    {
-        return md5($this->getParameter('app.password_salt'));
-    }
-
     public function TokenAuth(Request $request): ?User{
         $tokenHeader = $request->headers->get('Authorization');
         if(!$tokenHeader){return null;}

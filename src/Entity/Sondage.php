@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: SondageRepository::class)]
 class Sondage
@@ -17,25 +18,24 @@ class Sondage
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['sondage:read'])]
     private ?string $title = null;
 
     #[ORM\Column]
+    #[Groups(['sondage:read'])]
     private ?bool $isActive = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['sondage:read'])]
     private ?string $question = null;
 
     #[ORM\Column]
+    #[Groups(['sondage:read'])]
     private ?\DateTimeImmutable $createAt = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['sondage:read'])]
     private ?string $image_url = null;
-
-    /**
-     * @var Collection<int, Categorie>
-     */
-    #[ORM\OneToMany(targetEntity: Categorie::class, mappedBy: 'sondage')]
-    private Collection $categorie;
 
     #[ORM\ManyToOne(inversedBy: 'sondages')]
     private ?User $whoMakeIt_id = null;
@@ -46,9 +46,12 @@ class Sondage
     #[ORM\OneToMany(targetEntity: Choice::class, mappedBy: 'whichPoll')]
     private Collection $choices;
 
+    #[ORM\Column(length: 255)]
+    private ?string $category_name = null;
+
+
     public function __construct()
     {
-        $this->categorie = new ArrayCollection();
         $this->choices = new ArrayCollection();
     }
 
@@ -124,36 +127,6 @@ class Sondage
         return $this;
     }
 
-    /**
-     * @return Collection<int, Categorie>
-     */
-    public function getCategorie(): Collection
-    {
-        return $this->categorie;
-    }
-
-    public function addCategorie(Categorie $categorie): static
-    {
-        if (!$this->categorie->contains($categorie)) {
-            $this->categorie->add($categorie);
-            $categorie->setSondage($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCategorie(Categorie $categorie): static
-    {
-        if ($this->categorie->removeElement($categorie)) {
-            // set the owning side to null (unless already changed)
-            if ($categorie->getSondage() === $this) {
-                $categorie->setSondage(null);
-            }
-        }
-
-        return $this;
-    }
-
     public function getWhoMakeIt(): ?User
     {
         return $this->whoMakeIt_id;
@@ -192,6 +165,18 @@ class Sondage
                 $choice->setWhichPoll(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCategoryName(): ?string
+    {
+        return $this->category_name;
+    }
+
+    public function setCategoryName(string $category_name): static
+    {
+        $this->category_name = $category_name;
 
         return $this;
     }
