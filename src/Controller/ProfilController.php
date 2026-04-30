@@ -30,7 +30,7 @@ final class ProfilController extends AbstractController
         return $this->userRepo->findOneBy(['token' => $token]);
     }
 
-   #[Route('/profil/user', name: 'profil', methods: ['GET', 'OPTIONS'])]
+   #[Route('/profil/user', name: 'profil', methods: ['GET'])]
     public function getProfilData(Request $request): Response{
 
         $actualUser = $this->TokenAuth($request);
@@ -51,7 +51,7 @@ final class ProfilController extends AbstractController
         ]);
    }
 
-   #[Route('/profil/user/update', name: 'profil.update', methods: ['PUT', 'OPTIONS'])]
+   #[Route('/profil/user/update', name: 'profil.update', methods: ['PUT'])]
     public function updateProfilData(Request $request ): Response{
 
         $actualUser = $this->TokenAuth($request);

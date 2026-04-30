@@ -22,7 +22,7 @@ final class AuthController extends AbstractController
     }
 
 
-    #[Route('/auth/login', name: 'auth_login', methods: ['POST', 'OPTIONS'])]
+    #[Route('/auth/login', name: 'auth_login', methods: ['POST'])]
     public function login(Request $request): Response{
 
         $data = json_decode($request->getContent(), true);
@@ -50,7 +50,7 @@ final class AuthController extends AbstractController
         }
     }
 
-    #[Route('/auth/register', name: 'auth_register', methods: ['POST', 'OPTIONS'])]
+    #[Route('/auth/register', name: 'auth_register', methods: ['POST'])]
     public function register(Request $request, EntityManagerInterface $em): Response{
         $data = json_decode($request->getContent(), true);
         if(!$data){
@@ -85,7 +85,7 @@ final class AuthController extends AbstractController
         $tokenRaw = $hashedPseudo.uniqid('token', true);
         $user->setToken(hash('sha256', $tokenRaw));
 
-        $user->setRole(['ROLE_USER']);
+        $user->setRole(['']);
         $user->setCreatedAt(new \DateTimeImmutable());
 
         $profil->setImageProfil("");
@@ -104,7 +104,7 @@ final class AuthController extends AbstractController
         ]);
     }
 
-    #[Route('/auth/token', name: 'auth_token_login', methods: ['GET', 'OPTIONS'])]
+    #[Route('/auth/token', name: 'auth_token_login', methods: ['GET'])]
     public function logout(Request $request): Response{
 
         $token = $request->headers->get('Authorization');

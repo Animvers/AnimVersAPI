@@ -133,6 +133,9 @@ class User
     public function getRole(): array
     {
         return $this->role;
+        $this->role[] = "ROLE_USER";
+
+        return array_unique($role);
     }
 
     public function setRole(array $role): static

@@ -32,7 +32,7 @@ final class SondageController extends AbstractController
 
     //METHODS GET
 
-    #[Route('/sondage/all', name: 'get_All', methods: ['GET', 'OPTIONS'])]
+    #[Route('/sondage/all', name: 'get_All', methods: ['GET'])]
     public function getAll(): Response{
 
         $sondages = $this->sondageRepo->findAll();
@@ -48,7 +48,7 @@ final class SondageController extends AbstractController
     }
 
 
-    #[Route('/sondage/create', name: 'sondage_create', methods: ['POST', 'OPTIONS'])]
+    #[Route('/sondage/create', name: 'sondage_create', methods: ['POST'])]
     public function sondageCreate(Request $request, EntityManagerInterface $em): Response{
 
         $actualUser = $this->TokenAuth($request);

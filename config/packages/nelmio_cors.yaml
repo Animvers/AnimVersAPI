@@ -1,0 +1,15 @@
+nelmio_cors:
+    defaults:
+        origin_regex: true
+        allow_origin: ['^http://localhost:4200'] # Autorise ton frontend "Angular"
+        allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
+        allow_headers: ['Content-Type', 'Authorization']
+        expose_headers: ['Link']
+        max_age: 3600
+    paths:
+        # Applique ces règles à toutes tes routes (on peut restreindre à '^/api/' si besoin)
+        '^/':
+            allow_origin: ['^http://localhost:4200']
+            allow_headers: ['*']
+            allow_methods: ['POST', 'PUT', 'GET', 'DELETE', 'OPTIONS']
+            max_age: 3600
