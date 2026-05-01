@@ -72,7 +72,7 @@ final class ProfilController extends AbstractController
        }
 
        if(!empty($data['bio'])) $actualProfil->setBio($data['bio']);
-       if(!empty($data['imageProfile'])) $actualProfil->setImageProfil($data['imageProfile']);
+       if(!empty($data['imageProfil'])) $actualProfil->setImageProfil($data['imageProfil']);
 
        $this->em->persist($actualProfil);
        $this->em->flush();

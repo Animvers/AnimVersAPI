@@ -15,8 +15,9 @@ class Profil
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: Types::TEXT, name: "imageProfil", nullable: true)]
     #[Groups(["profil:read"])]
+
     private ?string $imageProfil = null;
 
     #[ORM\Column(length: 255)]
