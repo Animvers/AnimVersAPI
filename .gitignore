@@ -25,3 +25,10 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+
+# Ignore tout le contenu du dossier des uploads
+public/uploads/profiles/*
+
+# Sauf le fichier .gitignore à l'intérieur (si tu veux garder le dossier sur Git)
+!public/uploads/profiles/.gitignore
