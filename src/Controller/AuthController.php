@@ -82,7 +82,7 @@ final class AuthController extends AbstractController
 
         //TOKEN
         $hashedPseudo = md5($data['pseudo']);
-        $tokenRaw = $hashedPseudo.uniqid('token', true);
+        $tokenRaw = $hashedPseudo.md5('token', true);
         $user->setToken(hash('sha256', $tokenRaw));
 
         $user->setRole(['']);
