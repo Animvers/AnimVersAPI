@@ -8,6 +8,8 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -30,7 +32,7 @@ final class ProfilController extends AbstractController
         return $this->userRepo->findOneBy(['token' => $token]);
     }
 
-   #[Route('/profil/user', name: 'profil', methods: ['GET'])]
+    #[Route('/profil/user', name: 'profil', methods: ['GET'])]
     public function getProfilData(Request $request): Response{
 
         $actualUser = $this->TokenAuth($request);
@@ -49,37 +51,57 @@ final class ProfilController extends AbstractController
             "message" => "profil de l'utilisateur",
             "result" => $actualProfil, $actualUser], 200, [], ['groups' => ['profil:read', 'user:read']
         ]);
-   }
-
-   #[Route('/profil/user/update', name: 'profil.update', methods: ['PUT'])]
-    public function updateProfilData(Request $request ): Response{
+    }
+    #[Route('/profil/user/update', name: 'profil.update', methods: ['POST'])]
+    public function updateProfilData(Request $request): Response {
 
         $actualUser = $this->TokenAuth($request);
-       if(!$actualUser){
-           return $this->json([
-               "status" => "error",
-               "message" => "Il n'y a pas d'utilisateur avec ce token",
-           ]);
-       }
+        if (!$actualUser) {
+            return $this->json([
+                "status" => "error",
+                "message" => "Il n'y a pas d'utilisateur avec ce token",
+            ]);
+        }
 
-       $actualProfil = $this->profilRepo->findOneBy(['user_id' => $actualUser]);
+        $actualProfil = $this->profilRepo->findOneBy(['user_id' => $actualUser]);
 
-       $data = json_decode($request->getContent(), true);
-       if(!$data){
-           return $this->json(["status" => "error",
-                                "message" => "Le formulaire ne passe pas"
-           ]);
-       }
+        // C'est exactement ce ue ta fait mais j'ai remplacer data par bio et apr file car ca devien 2 choses diff avec l'upload de fichier
 
-       if(!empty($data['bio'])) $actualProfil->setBio($data['bio']);
-       if(!empty($data['imageProfil'])) $actualProfil->setImageProfil($data['imageProfil']);
 
-       $this->em->persist($actualProfil);
-       $this->em->flush();
+        // bio
+        $bio = $request->request->get('bio');
+        if (!empty($bio)) {
+            $actualProfil->setBio($bio);
+        }
 
-       return $this->json(["status" => "ok",
+        // imageProfil pour faire l'upload
+        $file = $request->files->get('imageProfil');
+        if ($file) {
+            $filesystem = new Filesystem();
+            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/profiles'; // c'est dans ce fichier ue les pp seront stocker
+
+            // supprime l'ancien fichier image
+            $oldFilename = $actualProfil->getImageProfil();
+            if ($oldFilename && $filesystem->exists($uploadDir . '/' . $oldFilename)) {
+                $filesystem->remove($uploadDir . '/' . $oldFilename);
+            }
+
+            // génération nom et placement dans fichier public
+            $newFilename = uniqid() . '.' . $file->guessExtension();
+            try {
+                $file->move($uploadDir, $newFilename);
+                $actualProfil->setImageProfil($newFilename);
+            } catch (FileException $e) {
+                return $this->json(["status" => "error", "message" => "Erreur upload"]);
+            }
+        }
+
+        $this->em->persist($actualProfil);
+        $this->em->flush();
+
+        return $this->json(["status" => "ok",
                             "message" => "Update profil réussie",
                             "result" => $actualProfil,], 200, [], ['groups' => ['profil:read']
         ]);
-   }
+    }
 }
