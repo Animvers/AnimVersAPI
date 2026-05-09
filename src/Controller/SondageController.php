@@ -38,7 +38,7 @@ final class SondageController extends AbstractController
     #[Route('/sondage/all', name: 'get_All', methods: ['GET'])]
     public function getAll(): Response{
 
-        $sondages = $this->sondageRepo->findAll();
+        $sondages = $this->sondageRepo->findBy(["isActive" => true]);
 
         if(!$sondages){
             return $this->json(["status"=>"error", "message"=>"Pas de sondages disponible"]);
