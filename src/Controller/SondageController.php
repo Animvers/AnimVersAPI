@@ -2,12 +2,15 @@
 
 namespace App\Controller;
 
+use App\Entity\Choice;
 use App\Entity\Sondage;
 use App\Entity\User;
 use App\Repository\SondageRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -66,16 +69,40 @@ final class SondageController extends AbstractController
 
         $newSondage = new Sondage();
 
-        $newSondage->setImageUrl($data['imageUrl']);
+    //------------------------------A retoucher si non fonctionnnel------------------------------------------//
+        //Image upload
+        $file = $request->files->get('image_url');
+        if($file){
+            $uploadDir = $this->getParameter('kernel.project_dir'). '/public/uploads/sondages';
+
+            $newFilename = uniqid().'.'.$file->guessExtension();
+            try{
+                $file->move($uploadDir, $newFilename);
+                $newSondage->setImageUrl($newFilename);
+            }catch(FileException $e){
+                return $this->json(["status"=> "error", "message"=> "Erreur de l'upload"]);
+            }
+        }
+    //-------------------------------------------------------------------------------------------------------//
+
+
         $newSondage->setTitle($data['title']);
         $newSondage->setQuestion($data['question']);
+
         $newSondage->setCategoryName($data['category_name']);
 
         $newSondage->setIsActive(true);
-
         $newSondage->setWhoMakeIt($actualUser);
-
         $newSondage->setCreateAt(new \DateTimeImmutable());
+
+        //Création des choix
+        foreach($data['choices'] as $choicelabel ){
+            $choice = new Choice();
+            $choice->setLabel($choicelabel);
+            $choice->setWhichPoll($newSondage);
+
+            $em->persist($choice);
+        }
 
         $em->persist($newSondage);
         $em->flush();
@@ -85,6 +112,7 @@ final class SondageController extends AbstractController
             "message" => "Card Crée avec success",
             "result"=> $newSondage], 200, [], ['groups' => ['sondage:read']
         ]);
+
     }
 
 
