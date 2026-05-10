@@ -55,15 +55,12 @@ final class SondageController extends AbstractController
     public function sondageCreate(Request $request, EntityManagerInterface $em): Response{
 
         $actualUser = $this->TokenAuth($request);
-        $data = json_decode($request->getContent(), true);
 
-        if(!$data){
-            return $this->json(["status"=> "error", "message"=> "JSON vide ou valeur incorrect"]);
-        }
         if(!$actualUser){
             return $this->json(["status"=> "error", "message"=>"Utilisateur inexistant"]);
         }
-        if($actualUser->getRole() != ["ROLE_ADMIN"]){
+
+        if (!in_array("ROLE_ADMIN", $actualUser->getRoles())){
             return $this->json(["status"=>"error", "message" => "autorisations refusée"]);
         }
 
@@ -71,11 +68,11 @@ final class SondageController extends AbstractController
 
     //------------------------------A retoucher si non fonctionnnel------------------------------------------//
         //Image upload
-        $file = $request->files->get('image_url');
+        $file = $request->files->get('imageUrl');
         if($file){
-            $uploadDir = $this->getParameter('kernel.project_dir'). '/public/uploads/sondages';
+            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/sondages';
 
-            $newFilename = uniqid().'.'.$file->guessExtension();
+            $newFilename = uniqid() . '.' . $file->guessExtension();
             try{
                 $file->move($uploadDir, $newFilename);
                 $newSondage->setImageUrl($newFilename);
@@ -85,23 +82,27 @@ final class SondageController extends AbstractController
         }
     //-------------------------------------------------------------------------------------------------------//
 
-
-        $newSondage->setTitle($data['title']);
-        $newSondage->setQuestion($data['question']);
-
-        $newSondage->setCategoryName($data['category_name']);
+        // Récupération via $request->request (indispensable pour lire les textes envoyés avec un fichier)
+        $newSondage->setTitle($request->request->get('title'));
+        $newSondage->setQuestion($request->request->get('question'));
+        $newSondage->setCategoryName($request->request->get('category_name'));
 
         $newSondage->setIsActive(true);
         $newSondage->setWhoMakeIt($actualUser);
         $newSondage->setCreateAt(new \DateTimeImmutable());
 
         //Création des choix
-        foreach($data['choices'] as $choicelabel ){
-            $choice = new Choice();
-            $choice->setLabel($choicelabel);
-            $choice->setWhichPoll($newSondage);
+        // On décode la chaîne JSON des choix envoyée par le formulaire
+        $choicesData = json_decode($request->request->get('choices', '[]'), true);
 
-            $em->persist($choice);
+        foreach ($choicesData as $choicelabel ) {
+            if (!empty($choicelabel)) {
+                $choice = new Choice();
+                $choice->setLabel($choicelabel);
+                $choice->setWhichPoll($newSondage);
+
+                $em->persist($choice);
+            }
         }
 
         $em->persist($newSondage);
