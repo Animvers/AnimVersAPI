@@ -60,7 +60,7 @@ final class SondageController extends AbstractController
             return $this->json(["status"=> "error", "message"=>"Utilisateur inexistant"]);
         }
 
-        if (!in_array("ROLE_ADMIN", $actualUser->getRoles())){
+        if (!in_array("ROLE_ADMIN", $actualUser->getRole())){
             return $this->json(["status"=>"error", "message" => "autorisations refusée"]);
         }
 

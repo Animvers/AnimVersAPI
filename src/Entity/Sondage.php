@@ -33,7 +33,7 @@ class Sondage
     #[Groups(['sondage:read'])]
     private ?\DateTimeImmutable $createAt = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['sondage:read'])]
     private ?string $image_url = null;
 
