@@ -31,3 +31,7 @@ public/uploads/profiles/*
 # Sauf le fichier .gitignore à l'intérieur (si tu veux garder le dossier sur Git)
 !public/uploads/profiles/.gitignore
 !public/uploads/sondages/.gitignore
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###

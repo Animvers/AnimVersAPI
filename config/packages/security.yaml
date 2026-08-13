@@ -1,39 +1,51 @@
 security:
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
+    # ─── Hashage des mots de passe ───────────────────────────────────────────────
+    # On utilise l'algorithme "auto" (bcrypt/argon2i selon l'environnement)
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    # ─── Provider : charge l'utilisateur depuis la base de données ───────────────
+    # LexikJWT utilise ce provider pour retrouver le User à partir du JWT
     providers:
-        users_in_memory: { memory: null }
+        app_user_provider:
+            entity:
+                # L'entité à utiliser comme utilisateur
+                class: App\Entity\User
+                # La propriété qui sert d'identifiant unique (getUserIdentifier() retourne l'email)
+                property: email
 
+    # ─── Firewalls ───────────────────────────────────────────────────────────────
     firewalls:
+        # Zone dev : pas de sécurité sur le profiler et les assets
         dev:
-            # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+
+        # Zone principale : toutes les autres routes passent par ici
         main:
             lazy: true
-            provider: users_in_memory
+            provider: app_user_provider
 
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
+            # On active le guard JWT de LexikJWT
+            # Il va lire le header "Authorization: Bearer <token>" automatiquement
+            jwt: ~
 
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+            # Pas de session côté serveur : l'API est stateless (JWT s'en charge)
+            stateless: true
 
-    # Note: Only the *first* matching rule is applied
+    # ─── Contrôle d'accès ────────────────────────────────────────────────────────
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        # Routes publiques : inscription et connexion ne nécessitent pas de JWT
+        - { path: ^/auth/login,    roles: PUBLIC_ACCESS }
+        - { path: ^/auth/register, roles: PUBLIC_ACCESS }
+        # Toutes les autres routes nécessitent d'être authentifié (JWT valide)
+        - { path: ^/,              roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:
         password_hashers:
-            # Password hashers are resource-intensive by design to ensure security.
-            # In tests, it's safe to reduce their cost to improve performance.
             Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
                 algorithm: auto
-                cost: 4 # Lowest possible value for bcrypt
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon
+                cost: 4        # Valeur minimale bcrypt (tests plus rapides)
+                time_cost: 3   # Valeur minimale argon
+                memory_cost: 10 # Valeur minimale argon
