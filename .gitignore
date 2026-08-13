@@ -13,8 +13,6 @@
 /public/bundles/
 /var/
 /vendor/
-###< symfony/framework-bundle ###
-/migrations/
 
 ###> phpunit/phpunit ###
 /phpunit.xml
