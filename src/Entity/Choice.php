@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\ChoiceRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ChoiceRepository::class)]
 class Choice
@@ -11,12 +13,18 @@ class Choice
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["reponse:create"])] //, "choice:update"
     private ?int $id = null;
 
+    #[Assert\NotBlank(message: 'Le label du choix est obligatoire')]
+    #[Assert\Length(min: 1, max: 255)]
+    #[Groups(["reponse:create"])] // , "choice:update"
     #[ORM\Column(length: 255)]
     private ?string $label = null;
 
+    #[Assert\NotNull(message: 'Un choix doit être relié à un sondage')]
     #[ORM\ManyToOne(inversedBy: 'choices')]
+    #[Groups(["reponse:create"])]
     private ?Sondage $whichPoll_id = null;
 
     public function getId(): ?int

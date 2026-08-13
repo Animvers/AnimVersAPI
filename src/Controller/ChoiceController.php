@@ -61,7 +61,7 @@ final class ChoiceController extends AbstractController
     }
 
     #[Route('/choice/selected', name: 'choice_selected', methods: ['POST'])]
-    public function ChoiceSelected(Request $request, EntityManagerInterface $em): Response{
+    public function ChoiceSelected(Request $request): Response{
 
         $actualUser = $this->tokenAuth($request);
         if(!$actualUser){
@@ -80,8 +80,8 @@ final class ChoiceController extends AbstractController
         $reponse->setUserId($actualUser);
         $reponse->setChoiceId($choice);
 
-        $em->persist($reponse);
-        $em->flush();
+        $this->em->persist($reponse);
+        $this->em->flush();
 
         return $this->json(["status"=>"success", "message"=>"Choix valider "/*, "result"=> $reponse*/]); // a vérif mais risque de boucle dans la DB
 

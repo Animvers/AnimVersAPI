@@ -9,7 +9,6 @@ use App\Repository\SondageRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,7 +20,7 @@ final class SondageController extends AbstractController
     public function __construct(
         private UserRepository $userRepo,
         private SondageRepository $sondageRepo,
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
     )
     {}
 
@@ -52,7 +51,7 @@ final class SondageController extends AbstractController
 
 
     #[Route('/sondage/create', name: 'sondage_create', methods: ['POST'])]
-    public function sondageCreate(Request $request, EntityManagerInterface $em): Response{
+    public function sondageCreate(Request $request): Response{
 
         $actualUser = $this->TokenAuth($request);
 
@@ -101,12 +100,12 @@ final class SondageController extends AbstractController
                 $choice->setLabel($choicelabel);
                 $choice->setWhichPoll($newSondage);
 
-                $em->persist($choice);
+                $this->em->persist($choice);
             }
         }
 
-        $em->persist($newSondage);
-        $em->flush();
+        $this->em->persist($newSondage);
+        $this->em->flush();
 
         return $this->json([
             "status" => "ok",

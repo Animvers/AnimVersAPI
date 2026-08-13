@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SondageRepository::class)]
 class Sondage
@@ -15,29 +16,46 @@ class Sondage
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['sondage:read', 'sondage:update'])]
     private ?int $id = null;
 
+    #[Assert\NotBlank(message: 'Le titre est obligatoire')]
+    #[Assert\Length(min: 1, max: 255,
+        minMessage: 'Le titre doit contenir au moins {{ limit }} caractères',
+        maxMessage: 'Le titre ne peut pas dépasser {{ limit }} caractères')]
     #[ORM\Column(length: 255)]
-    #[Groups(['sondage:read'])]
+    #[Groups(['sondage:read', 'sondage:update'])]
     private ?string $title = null;
 
+    #[Assert\NotNull(message: 'Le statut actif/inactif est obligatoire')]
     #[ORM\Column]
     #[Groups(['sondage:read'])]
     private ?bool $isActive = null;
 
+    #[Assert\NotBlank(message: 'La question est obligatoire')]
+    #[Assert\Length(min: 10, max: 255,
+        minMessage: 'La question doit contenir au moins {{ limit }} caractères',
+        maxMessage: 'La question ne peut pas dépasser {{ limit }} caractères')]
+    #[Assert\Regex(pattern: '/\?$/', message: 'La question doit se terminer par un point d\'interrogation')]
     #[ORM\Column(length: 255)]
-    #[Groups(['sondage:read'])]
+    #[Groups(['sondage:read', 'sondage:update'])]
     private ?string $question = null;
 
+    #[Assert\NotNull(message: 'La date de création n\'est pas valide')]
     #[ORM\Column]
     #[Groups(['sondage:read'])]
     private ?\DateTimeImmutable $createAt = null;
 
+    /* Surment remove
+    #[Assert\Url(message: '\'{{ value }}\' n\'est pas une URL valide pour l\'image')]
+    #[Assert\Length(max: 2000, maxMessage: 'L\'URL de l\'image ne peut pas dépasser {{ limit }} caractères')]
+    */
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['sondage:read'])]
+    #[Groups(['sondage:read', 'sondage:update'])]
     private ?string $image_url = null;
 
     #[ORM\ManyToOne(inversedBy: 'sondages')]
+    #[Groups(['sondage:read'])]
     private ?User $whoMakeIt_id = null;
 
     /**
@@ -46,7 +64,11 @@ class Sondage
     #[ORM\OneToMany(targetEntity: Choice::class, mappedBy: 'whichPoll')]
     private Collection $choices;
 
+    #[Assert\NotBlank(message: 'La catégorie est obligatoire')]
+    #[Assert\Choice(choices: ['VS', 'Anime', 'Perso', 'OP/ED', 'Manga', 'Autre'],
+        message: 'La catégorie \'{{ value }}\' n\'est pas valide. Choisissez parmi : {{ choices }}')]
     #[ORM\Column(length: 255)]
+    #[Groups(['sondage:read', 'sondage:update'])]
     private ?string $category_name = null;
 
 

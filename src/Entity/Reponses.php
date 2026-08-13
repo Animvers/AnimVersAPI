@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\ReponsesRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ReponsesRepository::class)]
 class Reponses
@@ -11,11 +13,16 @@ class Reponses
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["reponse:create"])]
     private ?int $id = null;
 
+    #[Assert\NotNull(message: 'Un utilisateur doit être associé à la réponse')]
+    #[Groups(["reponse:create"])]
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     private ?User $user_id = null;
 
+    #[Assert\NotNull(message: 'Un choix doit être associé à la réponse')]
+    #[Groups(["reponse:create"])]
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     private ?Choice $choice_id = null;
 
