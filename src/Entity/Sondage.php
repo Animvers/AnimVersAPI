@@ -61,7 +61,7 @@ class Sondage
     /**
      * @var Collection<int, Choice>
      */
-    #[ORM\OneToMany(targetEntity: Choice::class, mappedBy: 'whichPoll')]
+    #[ORM\OneToMany(targetEntity: Choice::class, mappedBy: 'whichPoll_id')]
     private Collection $choices;
 
     #[Assert\NotBlank(message: 'La catégorie est obligatoire')]

@@ -6,6 +6,7 @@ use App\Repository\ProfilRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProfilRepository::class)]
 class Profil
@@ -13,18 +14,23 @@ class Profil
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["profil:read"])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT, name: "imageProfil", nullable: true)]
     #[Groups(["profil:read"])]
-
+    #[Assert\Length(max: 255, maxMessage: 'Le nom de l\'image de profil est trop long')]
     private ?string $imageProfil = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Groups(["profil:read"])]
+    #[Assert\Length(max: 255, maxMessage: 'La bio ne peut pas dépasser {{ limit }} caractères')]
     private ?string $bio = null;
 
     #[ORM\ManyToOne(inversedBy: 'profils')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(["profil:read"])]
+    #[Assert\NotNull(message: 'Un profil doit être associé à un utilisateur')]
     private ?User $user_id = null;
 
     public function getId(): ?int
@@ -44,7 +50,7 @@ class Profil
         return $this->imageProfil;
     }
 
-    public function setImageProfil(string $imageProfil): static
+    public function setImageProfil(?string $imageProfil): static
     {
         $this->imageProfil = $imageProfil;
 
@@ -56,7 +62,7 @@ class Profil
         return $this->bio;
     }
 
-    public function setBio(string $bio): static
+    public function setBio(?string $bio): static
     {
         $this->bio = $bio;
 
