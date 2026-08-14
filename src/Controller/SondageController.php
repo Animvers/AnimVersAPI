@@ -6,99 +6,119 @@ use App\Entity\Choice;
 use App\Entity\Sondage;
 use App\Entity\User;
 use App\Repository\SondageRepository;
-use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class SondageController extends AbstractController
 {
-
     public function __construct(
-        private UserRepository $userRepo,
-        private SondageRepository $sondageRepo,
-        private EntityManagerInterface $em,
-    )
-    {}
+        private readonly SondageRepository $sondageRepo,
+        private readonly EntityManagerInterface $em,
+        private readonly ValidatorInterface $validator,
+        private readonly NormalizerInterface $normalizer
+    ) {}
 
-    public function TokenAuth(Request $request): ?User{
-        $tokenHeader = $request->headers->get('Authorization');
-        if(!$tokenHeader){return null;}
-
-        $token = str_replace('Bearer ', '', $tokenHeader);
-        return $this->userRepo->findOneBy(['token' => $token]);
-    }
-
-    //METHODS GET
-
-    #[Route('/sondage/all', name: 'get_All', methods: ['GET'])]
-    public function getAll(): Response{
-
-        $sondages = $this->sondageRepo->findBy(["isActive" => true]);
-
-        if(!$sondages){
-            return $this->json(["status"=>"error", "message"=>"Pas de sondages disponible"]);
-        }
-
-        return $this->json(["status"=>"ok",
-                            "message" => "Sondages bien présent",
-                            "result"=>$sondages], 200, [], ['groups' => ['sondage:read']]
-        );
-    }
-
-
+//    #[IsGranted('ROLE_ADMIN')]
     #[Route('/sondage/create', name: 'sondage_create', methods: ['POST'])]
-    public function sondageCreate(Request $request): Response{
-
-        $actualUser = $this->TokenAuth($request);
-
-        if(!$actualUser){
-            return $this->json(["status"=> "error", "message"=>"Utilisateur inexistant"]);
-        }
-
-        if (!in_array("ROLE_ADMIN", $actualUser->getRole())){
-            return $this->json(["status"=>"error", "message" => "autorisations refusée"]);
-        }
-
+    public function sondageCreate(Request $request, #[CurrentUser] ?User $currentUser): JsonResponse
+    {
         $newSondage = new Sondage();
 
-    //------------------------------A retoucher si non fonctionnnel------------------------------------------//
-        //Image upload
-        $file = $request->files->get('imageUrl');
-        if($file){
-            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/sondages';
+        $payload = $request->request->all();
 
-            $newFilename = uniqid() . '.' . $file->guessExtension();
-            try{
-                $file->move($uploadDir, $newFilename);
-                $newSondage->setImageUrl($newFilename);
-            }catch(FileException $e){
-                return $this->json(["status"=> "error", "message"=> "Erreur de l'upload"]);
-            }
+        if (isset($payload['title']))
+        {
+            $newSondage->setTitle($payload['title']);
         }
-    //-------------------------------------------------------------------------------------------------------//
 
-        // Récupération via $request->request (indispensable pour lire les textes envoyés avec un fichier)
-        $newSondage->setTitle($request->request->get('title'));
-        $newSondage->setQuestion($request->request->get('question'));
-        $newSondage->setCategoryName($request->request->get('category_name'));
+        if (isset($payload['question']))
+        {
+            $newSondage->setQuestion($payload['question']);
+        }
 
-        $newSondage->setIsActive(true);
-        $newSondage->setWhoMakeIt($actualUser);
+        if (isset($payload['category_name']))
+        {
+            $newSondage->setCategoryName($payload['category_name']);
+        }
+
+        $newSondage->setIsActive(false);
+        $newSondage->setWhoMakeIt($currentUser);
         $newSondage->setCreateAt(new \DateTimeImmutable());
 
-        //Création des choix
-        // On décode la chaîne JSON des choix envoyée par le formulaire
-        $choicesData = json_decode($request->request->get('choices', '[]'), true);
+        $file = $request->files->get('imageUrl');
 
-        foreach ($choicesData as $choicelabel ) {
-            if (!empty($choicelabel)) {
+        if ($file)
+        {
+            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/sondages';
+            $newFilename = uniqid() . '.' . $file->guessExtension();
+
+            try {
+                $file->move($uploadDir, $newFilename);
+                $newSondage->setImageUrl($newFilename);
+            } catch (FileException $e) {
+                return $this->json([
+                    'status' => 'error',
+                    'message' => "Erreur lors de l'upload de l'image."
+                ], 500);
+            }
+        }
+
+        $violations = $this->validator->validate($newSondage);
+        if (count($violations) > 0) {
+            $errors = [];
+            foreach ($violations as $violation) {
+                $errors[$violation->getPropertyPath()][] = $violation->getMessage();
+            }
+
+            return $this->json([
+                'status' => 'error',
+                'message' => 'Données du sondage invalides.',
+                'errors' => $errors
+            ], 400);
+        }
+
+        $choicesData = [];
+        if (isset($payload['choices'])) {
+            $choicesData = json_decode($payload['choices'], true) ?? [];
+        }
+
+        if (empty($choicesData) || !is_array($choicesData)) {
+            return $this->json([
+                'status' => 'error',
+                'message' => 'Un sondage doit contenir au moins un choix.'
+            ], 400);
+        }
+
+        foreach ($choicesData as $choiceLabel) {
+
+            if (!empty($choiceLabel)) {
+
                 $choice = new Choice();
-                $choice->setLabel($choicelabel);
+                $choice->setLabel($choiceLabel);
                 $choice->setWhichPoll($newSondage);
+
+                $choiceViolations = $this->validator->validate($choice);
+
+                if (count($choiceViolations) > 0) {
+                    $choiceErrors = [];
+                    foreach ($choiceViolations as $violation) {
+                        $choiceErrors[$violation->getPropertyPath()][] = $violation->getMessage();
+                    }
+
+                    return $this->json([
+                        'status' => 'error',
+                        'message' => 'Un ou plusieurs choix sont invalides.',
+                        'errors' => $choiceErrors
+                    ], 400);
+                }
 
                 $this->em->persist($choice);
             }
@@ -107,14 +127,33 @@ final class SondageController extends AbstractController
         $this->em->persist($newSondage);
         $this->em->flush();
 
-        return $this->json([
-            "status" => "ok",
-            "message" => "Card Crée avec success",
-            "result"=> $newSondage], 200, [], ['groups' => ['sondage:read']
-        ]);
+        $data = $this->normalizer->normalize($newSondage, null, ['groups' => ['sondage:read']]);
 
+        return $this->json([
+            'data' => $data,
+            'message' => 'Sondage créé avec succès.'
+        ], 201);
     }
 
 
+    #[Route('/sondage/get-all', name: 'sondages_get_all', methods: ['GET'])]
+    public function sondageGetAll(): JsonResponse
+    {
+        $sondages = $this->sondageRepo->findBy(['isActive' => true]);
 
+        if (empty($sondages)) {
+            return $this->json([
+                'status' => 'error',
+                'message' => 'Pas de sondages disponibles'
+            ], 404);
+        }
+
+        $data = $this->normalizer->normalize($sondages, null, ['groups' => ['sondage:read']]);
+
+        return $this->json([
+            'data' => $data,
+            'status' => 'success',
+            'message' => 'Sondages récupérés avec succès'
+        ], 200);
+    }
 }

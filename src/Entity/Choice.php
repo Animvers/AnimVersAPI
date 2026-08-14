@@ -13,18 +13,18 @@ class Choice
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["reponse:create"])] //, "choice:update"
+    #[Groups(["reponse:post"])] //, "choice:update"
     private ?int $id = null;
 
     #[Assert\NotBlank(message: 'Le label du choix est obligatoire')]
     #[Assert\Length(min: 1, max: 255)]
-    #[Groups(["reponse:create"])] // , "choice:update"
+    #[Groups(["reponse:post"])] // , "choice:update"
     #[ORM\Column(length: 255)]
     private ?string $label = null;
 
     #[Assert\NotNull(message: 'Un choix doit être relié à un sondage')]
     #[ORM\ManyToOne(inversedBy: 'choices')]
-    #[Groups(["reponse:create"])]
+    #[Groups(["reponse:post"])]
     private ?Sondage $whichPoll_id = null;
 
     public function getId(): ?int
