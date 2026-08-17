@@ -20,8 +20,7 @@ class Sondage
     private ?int $id = null;
 
     #[Assert\NotBlank(message: 'Le titre est obligatoire')]
-    #[Assert\Length(min: 1, max: 255,
-        minMessage: 'Le titre doit contenir au moins {{ limit }} caractères',
+    #[Assert\Length(max: 60,
         maxMessage: 'Le titre ne peut pas dépasser {{ limit }} caractères')]
     #[ORM\Column(length: 255)]
     #[Groups(['sondage:read', 'sondage:update'])]

@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Validator\ValidatorInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class ChoiceController extends AbstractController
 {
