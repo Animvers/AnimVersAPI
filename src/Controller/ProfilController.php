@@ -73,6 +73,13 @@ final class ProfilController extends AbstractController
             $actualProfil->setBio($bio);
         }
 
+        // Mise à jour du pseudo si fourni
+        $pseudo = $request->request->get('pseudo');
+        if ($pseudo !== null && $pseudo !== '') {
+            $actualUser->setPseudo($pseudo);
+            $this->em->persist($actualUser);
+        }
+
         // upload image profil
         $file = $request->files->get('imageProfil');
         if ($file) {
