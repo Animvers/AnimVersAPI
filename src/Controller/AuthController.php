@@ -13,6 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 
 final class AuthController extends AbstractController
@@ -20,13 +21,14 @@ final class AuthController extends AbstractController
 
     public function __construct(private UserRepository $userRepo){}
 
-    private function getSalt(): string
-    {
-        return md5($this->getParameter('app.password_salt'));
-    }
-
     #[Route('/auth/register', name: 'auth_register', methods: ['POST'])]
-    public function register(Request $request, EntityManagerInterface $em, ValidatorInterface $validator, JWTTokenManagerInterface $jwtManager): Response
+    public function register(
+        Request $request,
+        EntityManagerInterface $em,
+        ValidatorInterface $validator,
+        JWTTokenManagerInterface $jwtManager,
+        UserPasswordHasherInterface $passwordHasher
+    ): Response
     {
         $data = json_decode($request->getContent(), true);
 
@@ -48,15 +50,13 @@ final class AuthController extends AbstractController
 
         $user = new User();
         $profil = new Profil();
-        $salt = $this->getSalt();
 
         $user->setPseudo($data['pseudo'] ?? '');
         $user->setEmail($data['email'] ?? '');
 
-        //PASSWORD
+        //PASSWORD (Définir le mot de passe brut avant validation)
         $rawPassword = $data['password'] ?? '';
-        $hashedPassword = md5($rawPassword . $salt);
-        $user->setPassword($hashedPassword);
+        $user->setPassword($rawPassword);
 
         $user->setRole([]);
         $user->setCreatedAt(new \DateTimeImmutable());
@@ -65,7 +65,7 @@ final class AuthController extends AbstractController
         $profil->setBio("Bienvenue sur AnimVerse !!");
         $profil->setUserId($user);
 
-        //Validator
+        //Validator (Vérification de la longueur du mot de passe brut)
         $userErrors = $validator->validate($user);
         $profilErrors = $validator->validate($profil);
 
@@ -76,6 +76,10 @@ final class AuthController extends AbstractController
                 "errors" => (string) $userErrors . (string) $profilErrors
             ], 400);
         }
+
+        // Hacher le mot de passe après validation avec le PasswordHasher de Symfony
+        $hashedPassword = $passwordHasher->hashPassword($user, $rawPassword);
+        $user->setPassword($hashedPassword);
 
         $em->persist($user);
         $em->persist($profil);
@@ -88,11 +92,15 @@ final class AuthController extends AbstractController
             "message" => "Compte créé avec succès",
             "token" => $token,
             "result" => $user
-            ] , 201, [], ['groups' => ['user:read_id', 'user:read_pseudo', 'user:read_email', 'user:read_date', 'user:read_role']]);
+            ] , 201, [], ['groups' => ['user:read']]);
     }
 
     #[Route('/auth/login', name: 'auth_login', methods: ['POST'])]
-    public function login(Request $request, JWTTokenManagerInterface $jwtManager): Response{
+    public function login(
+        Request $request,
+        JWTTokenManagerInterface $jwtManager,
+        UserPasswordHasherInterface $passwordHasher
+    ): Response{
 
         $data = json_decode($request->getContent(), true);
 
@@ -105,9 +113,7 @@ final class AuthController extends AbstractController
             return $this->json(["status"=> "error", "message"=>"Email incorrect"],401);
         }
 
-        $salt = $this->getSalt();
-
-        if(md5(($data['password']?? '').$salt) === $account->getPassword()){
+        if($passwordHasher->isPasswordValid($account, $data['password'] ?? '')){
             $token = $jwtManager->create($account);
 
             return $this->json([
@@ -115,7 +121,7 @@ final class AuthController extends AbstractController
                 "message" => "Connecté",
                 "token" => $token,
                 "result" => $account,
-                ], 200, [], ['groups' => ['user:read_id', 'user:read_pseudo', 'user:read_email', 'user:read_role']]);
+                ], 200, [], ['groups' => ['user:read']]);
             }
 
             else {

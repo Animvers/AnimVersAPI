@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\ProfilRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,7 +19,8 @@ final class ProfilController extends AbstractController
 
     public function __construct(
         private EntityManagerInterface $em,
-        private ProfilRepository $profilRepo
+        private ProfilRepository $profilRepo,
+        private UserRepository $userRepo
     ) {}
 
     #[Route('/profil/user', name: 'profil', methods: ['GET'])]
@@ -42,7 +44,7 @@ final class ProfilController extends AbstractController
                 "user" => $actualUser,
                 "profil" => $actualProfil
             ]
-        ], 200, [], ['groups' => ['profil:read', 'user:read_id', 'user:read_pseudo', 'user:read_email']]);
+        ], 200, [], ['groups' => ['user:read']]);
     }
 
 
@@ -75,7 +77,13 @@ final class ProfilController extends AbstractController
 
         // Mise à jour du pseudo si fourni
         $pseudo = $request->request->get('pseudo');
-        if ($pseudo !== null && $pseudo !== '') {
+        if ($pseudo !== null && $pseudo !== '' && $pseudo !== $actualUser->getPseudo()) {
+            if ($this->userRepo->findOneBy(['pseudo' => $pseudo])) {
+                return $this->json([
+                    "status" => "error",
+                    "message" => "Pseudonyme existant"
+                ], 400);
+            }
             $actualUser->setPseudo($pseudo);
             $this->em->persist($actualUser);
         }
@@ -106,13 +114,15 @@ final class ProfilController extends AbstractController
             }
         }
 
-        // Validation par symfony
-        $errors = $validator->validate($actualProfil);
-        if (count($errors) > 0) {
+        // Validation par symfony (profil + user)
+        $profilErrors = $validator->validate($actualProfil);
+        $userErrors = $validator->validate($actualUser);
+
+        if (count($profilErrors) > 0 || count($userErrors) > 0) {
             return $this->json([
                 "status" => "error",
                 "message" => "Erreur de validation",
-                "errors" => (string) $errors
+                "errors" => (string) $profilErrors . (string) $userErrors
             ], 400);
         }
 

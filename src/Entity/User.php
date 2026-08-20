@@ -6,27 +6,30 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
+#[UniqueEntity(fields: ['email'], message: 'Email déjà utilisé')]
+#[UniqueEntity(fields: ['pseudo'], message: 'Pseudonyme existant')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["user:read_id", "auth:token"])]
+    #[Groups(["user:read", "auth:token"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["user:read_pseudo"])]
+    #[Groups(["user:read"])]
     #[Assert\NotBlank(message: 'Un pseudonyme est obligatoire')]
     private ?string $pseudo = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["user:read_email"])]
+    #[Groups(["user:read"])]
     #[Assert\NotBlank(message: 'Un email est obligatoire')]
     #[Assert\Email(message: 'L\'adresse email n\'est pas valide')]
     private ?string $email = null;
@@ -37,12 +40,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column]
-    #[Groups(["user:read_date"])]
+    #[Groups(["user:read"])]
     #[Assert\NotNull(message: 'Une date de création est nécessaire')]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column]
-    #[Groups(["user:read_role"])]
+    #[Groups(["user:read"])]
     private array $role = [];
 
     /**
