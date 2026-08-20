@@ -131,7 +131,7 @@ final class AuthController extends AbstractController
     }
 
     #[Route('/auth/token', name: 'auth_token', methods: ['GET'])]
-    public function token(JWTTokenManagerInterface $jwtManager): Response
+    public function token(): Response
     {
         $user = $this->getUser();
 
@@ -139,12 +139,9 @@ final class AuthController extends AbstractController
             return $this->json(["status" => "error", "message" => "Non authentifié"], 401);
         }
 
-        $token = $jwtManager->create($user);
-
         return $this->json([
             "status" => "ok",
             "message" => "Token valide",
-            "token" => $token,
             "result" => $user,
         ], 200, [], ['groups' => ['auth:token']]);
     }
