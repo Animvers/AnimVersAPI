@@ -49,7 +49,11 @@ final class SondageController extends AbstractController
             $newSondage->setCategoryName($payload['category_name']);
         }
 
-        $newSondage->setIsActive(false);
+        if (isset($payload['is_active'])) {
+            $newSondage->setIsActive(filter_var($payload['is_active'], FILTER_VALIDATE_BOOLEAN));
+        } else {
+            $newSondage->setIsActive(false);
+        }
         $newSondage->setWhoMakeIt($currentUser);
         $newSondage->setCreateAt(new \DateTimeImmutable());
 
@@ -130,6 +134,7 @@ final class SondageController extends AbstractController
         $data = $this->normalizer->normalize($newSondage, null, ['groups' => ['sondage:read']]);
 
         return $this->json([
+            'status' => 'success',
             'data' => $data,
             'message' => 'Sondage créé avec succès.'
         ], 201);
